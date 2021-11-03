@@ -1,12 +1,8 @@
 ﻿using System;
 using Tizen.NUI;
+using Tizen.NUI.Components;
 using Tizen.NUI.BaseComponents;
-
-using OpenTK;
-using OpenTK.Graphics;
 using OpenTK.Graphics.ES20;
-using OpenTK.Platform;
-using OpenTK.Platform.Tizen;
 
 namespace GLViewSample
 {
@@ -15,9 +11,8 @@ namespace GLViewSample
         private int glProgram;
         private int width;
         private int height;
-        private int numTouched;
-        private float clearColor;
-        GLView glView;
+        private float[] vVertices;
+        private GLView glView;
 
         protected override void OnCreate()
         {
@@ -28,46 +23,56 @@ namespace GLViewSample
         void Initialize()
         {
             Window.Instance.KeyEvent += OnKeyEvent;
+            Window.Instance.BackgroundColor = Color.White;
+            // Window.Instance.GetDefaultLayer().Add(glView);
+
+            View layoutView = new View();
+            var linearLayout = new LinearLayout();
+            linearLayout.LinearOrientation = LinearLayout.Orientation.Vertical;
+            linearLayout.CellPadding = new Size(0, 0);
+            layoutView.Layout = linearLayout;
+            layoutView.WidthResizePolicy = ResizePolicyType.FillToParent;
+            layoutView.HeightResizePolicy = ResizePolicyType.FillToParent;
+            Window.Instance.GetDefaultLayer().Add(layoutView);
+
+            TextLabel label = new TextLabel("GLView");
+            label.TextColor = Color.White;
+            label.BackgroundColor = Color.MidnightBlue;
+            label.Weight = 0.05f;
+
+            label.HorizontalAlignment = HorizontalAlignment.Center;
+            label.VerticalAlignment = VerticalAlignment.Center;
+            label.WidthResizePolicy = ResizePolicyType.FillToParent;
+            label.HeightResizePolicy = ResizePolicyType.FillToParent;
+
+
             glView = new GLView(GLView.ColorFormat.RGBA8888);
+            glView.Weight = 0.6f;
             glView.WidthResizePolicy = ResizePolicyType.FillToParent;
             glView.HeightResizePolicy = ResizePolicyType.FillToParent;
 
-            glView.SetGraphicsConfig(true, true, 0, GLView.GLESVersion.Version_2_0);
-            glView.RenderingMode = Tizen.NUI.GLRenderingMode.Continuous;
-            glView.RegisterGLCallback(this.initialize_gl, this.renderFrame_gl, this.terminate_gl);
+            glView.SetGraphicsConfig(true, true, 0, GLESVersion.Version20);
+            glView.RenderingMode = GLRenderingMode.Continuous;
+            glView.RegisterGLCallbacks(this.InitializeGL, this.RenderFrameGL, this.TerminateGL);
             glView.SetResizeCallback(this.ResizeCallback);
 
-            glView.TouchEvent += OnTouchEvent;
-            Window.Instance.GetDefaultLayer().Add(glView);
+            Button textButton = new Button();
+            textButton.BackgroundColor = Color.MidnightBlue;
+            textButton.TextLabel.Text = "Stop";
+            textButton.Weight = 0.05f;
+            textButton.WidthResizePolicy = ResizePolicyType.FillToParent;
+            textButton.HeightResizePolicy = ResizePolicyType.FillToParent;
 
-            numTouched = 0;
+
+            layoutView.Add(label);
+            layoutView.Add(glView);
+            layoutView.Add(textButton);
         }
 
-        public void ResizeCallback(int x, int y)
+        public void ResizeCallback(int w, int h)
         {
-            // Tizen.Log.Error("DKDK", "int Callback REsized before width" + x + " " + y);
-            width = x;
-            height = y;
-        }
-
-        private bool OnTouchEvent(object sender, View.TouchEventArgs e)
-        {
-            if (e.Touch.GetState(0) == PointStateType.Up)
-            {
-                numTouched++;
-                if (numTouched % 2 == 1)
-                {
-                    glView.Size = new Size(320, 320);
-                }
-                else
-                {
-                    glView.Size = new Size(720, 1280);
-                }
-
-                Tizen.Log.Error("DKDK", "callback OnTouchEvnet " + width + " " + height);
-            }
-
-            return true;
+            width = w;
+            height = h;
         }
 
         int LoadShader(ShaderType type, string shaderSrc)
@@ -109,10 +114,8 @@ namespace GLViewSample
             return shader;
         }
 
-        public void initialize_gl()
+        public void InitializeGL()
         {
-            Tizen.Log.Error("DKDK", "InitCallback");
-
             //Load the shaders and get a linked program object
             string vShaderStr =
                 "attribute vec4 vPosition;  \n" +
@@ -162,7 +165,7 @@ namespace GLViewSample
                 {
                     String infoLog;
                     GL.GetProgramInfoLog(programObject, infoLogLength, out infoLogLength, out infoLog);
-                    Console.WriteLine("GL2", "Couldn't link program: " + infoLog.ToString());
+                    Tizen.Log.Debug("GLViewSsample", "Couldn't link program: " + infoLog.ToString());
                 }
 
                 GL.DeleteProgram(programObject);
@@ -171,25 +174,19 @@ namespace GLViewSample
 
             // Store the program obejct
             glProgram = programObject;
-            clearColor = 1.0f;
-            GL.ClearColor(clearColor, clearColor, clearColor, 1.0f);
+
+            vVertices = new float[] { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, vVertices);
+            GL.EnableVertexAttribArray(0);
         }
 
-        public int renderFrame_gl()
+        public int RenderFrameGL()
         {
-            GL.ClearColor(clearColor, clearColor, clearColor, 1.0f);
-            if (clearColor < 0)
-            {
-                clearColor = 1.0f;
-            }
-            else
-            {
-                clearColor -= 0.01f;
-            }
+            Tizen.Log.Debug("GLViewSample", "RenderFrameGL");
 
-            float[] vVertices = new float[] { 0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f };
+            GL.ClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-            // SEt the viewport
+            // Set the viewport
             GL.Viewport(0, 0, width, height);
 
             // Clear the color buffer
@@ -199,22 +196,19 @@ namespace GLViewSample
             GL.UseProgram(glProgram);
 
             // Load the vertex data
-            GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, 0, vVertices);
-
-            GL.EnableVertexAttribArray(0);
-
             GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
 
             return 1;
         }
 
-        public void terminate_gl()
+        public void TerminateGL()
         {
+            GL.DeleteProgram(glProgram);
         }
 
         public void OnKeyEvent(object sender, Window.KeyEventArgs e)
         {
-            if (e.Key.State == Key.StateType.Down && (e.Key.KeyPressedName == "XF86Back" || e.Key.KeyPressedName == "Escape"))
+            if (e.Key.KeyPressedName == "XF86Back" || e.Key.KeyPressedName == "Escape")
             {
                 Exit();
             }

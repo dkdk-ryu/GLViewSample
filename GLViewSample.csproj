@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <PackageReference Include="OpenTK.Tizen" Version="3.0.2" />
-    <PackageReference Include="Tizen.NET.API9" Version="9.0.0.16570" />
+    <PackageReference Include="Tizen.NET.API9" Version="9.0.0.16801" />
   </ItemGroup>
 
 </Project>
